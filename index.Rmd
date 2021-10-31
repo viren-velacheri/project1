@@ -22,20 +22,36 @@ tidy=TRUE, tidy.opts=list(width.cutoff=60), R.options=list(max.print=100))
 ### Name and EID here
 
 #### Introduction 
-
 Paragraph or two introducing your datasets and variables, why they are interesting to you, etc.
+I am a big sports lover and one of my favorite sports is basketball. I played competitively back in middle school and was a part of the school team and still play it today as a side hobby. In basketball, there are various metrics/stats used to evaluate players and teams.
+
+The 1st dataset contains common stats related to all the eligible players such as shooting percentages, rebounds, minutes played per game, etc. It also contains a couple of advanced metrics such as true shooting percentage which takes into account some of the basic stats like free throw shooting and three point percentage as an attempt to more accurately portray a player in that regard.
+
+The 2nd dataset contains some common variables such as the players and number of games played, but instead of some of the basic stats that make up the majority of the 1st set, this dataset contains more advanced metrics such as win shares, box plus/minus, etc. With all these different metrics and statistics to play around with, I hope to explore and discover some interesting findings.
+
 
 ```{R}
+library(tidyverse)
+library(stringi)
 # read your datasets in here, e.g., with read_csv()
-
+dataset_1 <- read_csv("polished_1st_dataset.csv")
+# Due to difference in first dataset not using accent marks and other dataset
+# using accent marks for name, I used this function to keep them all the same.
+dataset_1$Player <- stri_trans_general(str = dataset_1$Player, id = "Latin-ASCII")
+dataset_2 <- read_csv("polished_2nd_dataset.csv")
+dataset_2$Player <- stri_trans_general(str = dataset_2$Player, id = "Latin-ASCII")
+head(dataset_1)
 ```
 
 #### Tidying: Reshaping
 
 If your datasets are tidy already, demonstrate that you can reshape data with pivot wider/longer here (e.g., untidy and then retidy). Alternatively, it may be easier to wait until the wrangling section so you can reshape your summary statistics. Note here if you are going to do this.
 
+Gonna just wait until the wrangling section where reshaping summary statistics will take place
+
 ```{R}
 # your tidying code (if applicable; can also wait until wrangling section)
+
 ```
 
     
@@ -43,30 +59,102 @@ If your datasets are tidy already, demonstrate that you can reshape data with pi
 
 ```{R}
 # your joining code
+merged_dataset <- full_join(dataset_1, dataset_2, by="Player")
+head(merged_dataset)
 
+nrow(dataset_1)
+nrow(dataset_2)
+
+
+dataset_1 %>% summarize_all(n_distinct) %>% select(Player)
+dataset_2 %>% summarize_all(n_distinct) %>% select(Player)
+
+setdiff(dataset_1$Player, dataset_2$Player)
+setdiff(dataset_2$Player, dataset_1$Player)
+
+nrow(merged_dataset)
+cols_removed_dataset <- merged_dataset %>% select(-'USG%.x') %>% select(-'Games Played.x') %>% select(-'TO%.x') %>% select(-'TS%.x') %>% select(-'TRB%.x') %>% select(-'AST%.x')
+glimpse(cols_removed_dataset)
+
+renamed_dataset <- cols_removed_dataset %>% rename('TS%'='TS%.y') %>% rename('TRB%'='TRB%.y') %>% rename('AST%'='AST%.y') %>% rename('TO%'='TO%.y') %>% rename('USG%'='USG%.y') %>% rename('Games Played'='Games Played.y')
+glimpse(renamed_dataset)
+nrow(dataset_1) + nrow(dataset_2) - nrow(renamed_dataset)
 # your joining code
 ```
 
 Discussions of joining here. Feel encouraged to break up into more than once code chunk and discuss each in turn.
+I did a full join by the common variable in both datasets, Player, as all these other surrounding metrics and statistics in the datasets related to the individual players and I wanted to retain all of the original data in both sets and not lose/drop anything. I feel like the more data the better. 
+
+In the first dataset, there are 626 total observations/rows, while in the second one there are 705 observations/rows. They each have 540 unique IDs.
+
+In the first dataset, these 17 unique Ids/Players do not exist in the second dataset:
+"Marcus Morris Sr."    "Lonnie Walker IV"     "Otto Porter Jr."      "Danuel House Jr." 
+"JJ Redick"            "James Ennis III"      "Robert Williams III"  "Juancho Hernangomez"
+"Xavier Tillman"       "Frank Mason"          "Charlie Brown Jr."    "Kevin Knox II"
+"Harry Giles III"      "Wes Iwundu"           "Marcos Louzada Silva" "Robert Woodard II"
+"Brian Bowen II"
+
+In the second dataset, these 17 unique Ids/Players do not exist in the first dataset:
+"Brian Bowen"        "Charlie Brown"      "James Ennis"        "Harry Giles"
+"Juan Hernangomez"   "Danuel House"       "Wesley Iwundu"      "Kevin Knox"
+"Didi Louzada"       "Frank Mason III"    "Marcus Morris"      "Otto Porter"
+"J.J. Redick"        "Xavier Tillman Sr." "Lonnie Walker"      "Robert Williams" 
+"Robert Woodard"
+
+It appears that this is due to specifications in the names of the players. For example, Robert Williams is mentioned in both datasets, but in the first one it was more specific as it says "Robert Williams III" instead of just "Robert Williams". This can be manually edited as it appears that this is the case for only these 17 or so names.
+
+
+In the merged dataset, there are 988 rows and 343 rows/observations were dropped. Potential problems could be that due to this, there is less data to analyze and results might be less comprehensive. In this case though, I don't believe this should be much of a problem as there are still 988 rows/observations worth of data to look at which should be plenty.
+
 
 ####  Wrangling
 
 ```{R}
 # your wrangling code
 
+# summary statistics for numeric variables (mean, sd, var, n, quantile, min, max, n_distinct, cor, etc)
+knitr::kable(renamed_dataset %>% group_by(Team) %>% summarize(MeanVORP = mean(VORP, na.rm=TRUE), SdVORP= sd(VORP, na.rm=TRUE), VarVORP= var(VORP, na.rm=TRUE), num_players=n(), MinVORP = min(VORP, na.rm=TRUE), distinctVORP = n_distinct(VORP, na.rm= TRUE))) 
+
+knitr::kable(renamed_dataset %>% group_by(Team) %>% summarize(MeanBPM = mean(BPM, na.rm=TRUE), SdBPM= sd(BPM, na.rm=TRUE), VarBPM= var(BPM, na.rm=TRUE), num_players=n(), MinBPM = min(BPM, na.rm=TRUE), distinctBPM = n_distinct(BPM, na.rm= TRUE))) 
+
+knitr::kable(renamed_dataset %>% group_by(Team) %>% summarize(MeanWS = mean(WS, na.rm=TRUE), SdWS= sd(WS, na.rm=TRUE), VarWS= var(WS, na.rm=TRUE), num_players=n(), MinWS = min(WS, na.rm=TRUE), distinctWS = n_distinct(WS, na.rm= TRUE))) 
+
+knitr::kable(renamed_dataset %>% group_by(Team) %>% summarize(MeanPER = mean(PER, na.rm=TRUE), SdPER= sd(PER, na.rm=TRUE), VarPER= var(PER, na.rm=TRUE), num_players=n(), MinPER = min(PER, na.rm=TRUE), distinctPER = n_distinct(PER, na.rm= TRUE))) 
+
+knitr::kable(renamed_dataset %>% group_by(Team) %>% summarize(MeanTS = mean(TS.y, na.rm=TRUE), SdTS= sd(TS.y, na.rm=TRUE), VarTS= var(TS, na.rm=TRUE), num_players=n(), MinTS = min(TS, na.rm=TRUE), distinctTS = n_distinct(TS, na.rm= TRUE)))
+
+# Categorical Variables
+knitr::kable(renamed_dataset %>% group_by(Team) %>% summarize(num_players = n()))
+
+knitr::kable(renamed_dataset %>% group_by(Player) %>% summarize(num_times = n()))
+
+knitr::kable(renamed_dataset %>% group_by(Pos) %>% summarize(num_times = n()))
+
+na_count <- function(x) {
+    na_vector = is.na(x)
+    sum(na_vector)
+}
+
+knitr::kable(renamed_dataset %>% summarize_all(na_count))
+
+
 # your wrangling code
+glimpse(merged_dataset)
 
 # your wrangling code
 ```
 
 Your discussion of wrangling section here. Feel encouraged to break up into more than once code chunk and discuss each in turn.
 
+There are 23 missing/NA values for the Team variable, no missing/NA values for the Player variable, and 20 missing/NA values for the Pos variable.
+
 
 #### Visualizing
 
 ```{R}
 # your plot 1
-```
+
+ggplot(merged_dataset, aes( WS, PER)) + geom_line(aes(color=Player))
 
 Your discussion of plot 1
 
