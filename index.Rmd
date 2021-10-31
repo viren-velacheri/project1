@@ -76,7 +76,7 @@ nrow(merged_dataset)
 cols_removed_dataset <- merged_dataset %>% select(-'USG%.x') %>% select(-'Games Played.x') %>% select(-'TO%.x') %>% select(-'TS%.x') %>% select(-'TRB%.x') %>% select(-'AST%.x')
 glimpse(cols_removed_dataset)
 
-renamed_dataset <- cols_removed_dataset %>% rename('TS%'='TS%.y') %>% rename('TRB%'='TRB%.y') %>% rename('AST%'='AST%.y') %>% rename('TO%'='TO%.y') %>% rename('USG%'='USG%.y') %>% rename('Games Played'='Games Played.y')
+renamed_dataset <- cols_removed_dataset %>% rename('TS'='TS%.y') %>% rename('TRB'='TRB%.y') %>% rename('AST'='AST%.y') %>% rename('TO'='TO%.y') %>% rename('USG'='USG%.y') %>% rename('Games_Played'='Games Played.y')
 glimpse(renamed_dataset)
 nrow(dataset_1) + nrow(dataset_2) - nrow(renamed_dataset)
 # your joining code
@@ -121,7 +121,7 @@ knitr::kable(renamed_dataset %>% group_by(Team) %>% summarize(MeanWS = mean(WS, 
 
 knitr::kable(renamed_dataset %>% group_by(Team) %>% summarize(MeanPER = mean(PER, na.rm=TRUE), SdPER= sd(PER, na.rm=TRUE), VarPER= var(PER, na.rm=TRUE), num_players=n(), MinPER = min(PER, na.rm=TRUE), distinctPER = n_distinct(PER, na.rm= TRUE))) 
 
-knitr::kable(renamed_dataset %>% group_by(Team) %>% summarize(MeanTS = mean(TS.y, na.rm=TRUE), SdTS= sd(TS.y, na.rm=TRUE), VarTS= var(TS, na.rm=TRUE), num_players=n(), MinTS = min(TS, na.rm=TRUE), distinctTS = n_distinct(TS, na.rm= TRUE)))
+knitr::kable(renamed_dataset %>% group_by(Team) %>% summarize(MeanTS = mean(TS, na.rm=TRUE), SdTS= sd(TS, na.rm=TRUE), VarTS= var(TS, na.rm=TRUE), num_players=n(), MinTS = min(TS, na.rm=TRUE), distinctTS = n_distinct(TS, na.rm= TRUE)))
 
 # Categorical Variables
 knitr::kable(renamed_dataset %>% group_by(Team) %>% summarize(num_players = n()))
@@ -154,9 +154,8 @@ There are 23 missing/NA values for the Team variable, no missing/NA values for t
 ```{R}
 # your plot 1
 
-ggplot(merged_dataset, aes( WS, PER)) + geom_line(aes(color=Player))
 
-Your discussion of plot 1
+
 
 ```{R}
 # your plot 2
