@@ -19,15 +19,16 @@ tidy=TRUE, tidy.opts=list(width.cutoff=60), R.options=list(max.print=100))
 
 ## Data Wrangling, Exploration, Visualization
 
-### Name and EID here
+### Name: Viren Velacheri, EID: vv6898
 
 #### Introduction 
 Paragraph or two introducing your datasets and variables, why they are interesting to you, etc.
+
 I am a big sports lover and one of my favorite sports is basketball. I played competitively back in middle school and was a part of the school team and still play it today as a side hobby. In basketball, there are various metrics/stats used to evaluate players and teams.
 
 The 1st dataset contains common stats related to all the eligible players such as shooting percentages, rebounds, minutes played per game, etc. It also contains a couple of advanced metrics such as true shooting percentage which takes into account some of the basic stats like free throw shooting and three point percentage as an attempt to more accurately portray a player in that regard.
 
-The 2nd dataset contains some common variables such as the players and number of games played, but instead of some of the basic stats that make up the majority of the 1st set, this dataset contains more advanced metrics such as win shares, box plus/minus, etc. With all these different metrics and statistics to play around with, I hope to explore and discover some interesting findings.
+The 2nd dataset contains some common variables such as the players and number of games played, but instead of some of the basic statistics that make up the majority of the 1st set, this dataset contains more advanced metrics such as win shares, box plus/minus, etc. With all these different metrics and statistics to play around with, I hope to explore and discover some interesting things.
 
 
 ```{R}
@@ -79,11 +80,12 @@ glimpse(cols_removed_dataset)
 renamed_dataset <- cols_removed_dataset %>% rename('TS'='TS%.y') %>% rename('TRB'='TRB%.y') %>% rename('AST'='AST%.y') %>% rename('TO'='TO%.y') %>% rename('USG'='USG%.y') %>% rename('Games_Played'='Games Played.y')
 glimpse(renamed_dataset)
 nrow(dataset_1) + nrow(dataset_2) - nrow(renamed_dataset)
+renamed_dataset <- renamed_dataset %>% na.omit
 # your joining code
 ```
 
 Discussions of joining here. Feel encouraged to break up into more than once code chunk and discuss each in turn.
-I did a full join by the common variable in both datasets, Player, as all these other surrounding metrics and statistics in the datasets related to the individual players and I wanted to retain all of the original data in both sets and not lose/drop anything. I feel like the more data the better. 
+I did a full join by the common variable in both datasets, Player, as all these other surrounding metrics and statistics in the datasets related to the individual players and I wanted to retain all of the original data in both sets and not lose/drop anything as the more data the better. 
 
 In the first dataset, there are 626 total observations/rows, while in the second one there are 705 observations/rows. They each have 540 unique IDs.
 
@@ -106,6 +108,8 @@ It appears that this is due to specifications in the names of the players. For e
 
 In the merged dataset, there are 988 rows and 343 rows/observations were dropped. Potential problems could be that due to this, there is less data to analyze and results might be less comprehensive. In this case though, I don't believe this should be much of a problem as there are still 988 rows/observations worth of data to look at which should be plenty.
 
+I decided to also drop any rows that had any NA values, so the merged dataset was reduced to 894 rows and/or 94 additional rows were dropped. 
+
 
 ####  Wrangling
 
@@ -113,6 +117,13 @@ In the merged dataset, there are 988 rows and 343 rows/observations were dropped
 # your wrangling code
 
 # summary statistics for numeric variables (mean, sd, var, n, quantile, min, max, n_distinct, cor, etc)
+
+knitr::kable(renamed_dataset %>% group_by(Team, Pos) %>% summarize(MeanVORP = mean(VORP, na.rm=TRUE), SdVORP= sd(VORP, na.rm=TRUE), VarVORP= var(VORP, na.rm=TRUE), num_players=n(), MinVORP = min(VORP, na.rm=TRUE), distinctVORP = n_distinct(VORP, na.rm= TRUE)) %>% na.omit %>% arrange(desc(MeanVORP))) 
+
+knitr::kable(renamed_dataset %>% group_by(Team) %>% summarize(MeanVORP = mean(VORP, na.rm=TRUE), SdVORP= sd(VORP, na.rm=TRUE), VarVORP= var(VORP, na.rm=TRUE), num_players=n(), MinVORP = min(VORP, na.rm=TRUE), distinctVORP = n_distinct(VORP, na.rm= TRUE)) %>% na.omit) 
+
+knitr::kable(renamed_dataset %>% group_by(Team) %>% summarize(MeanVORP = mean(VORP, na.rm=TRUE), SdVORP= sd(VORP, na.rm=TRUE), VarVORP= var(VORP, na.rm=TRUE), num_players=n(), MinVORP = min(VORP, na.rm=TRUE), distinctVORP = n_distinct(VORP, na.rm= TRUE)) %>% na.omit) 
+
 knitr::kable(renamed_dataset %>% group_by(Team) %>% summarize(MeanVORP = mean(VORP, na.rm=TRUE), SdVORP= sd(VORP, na.rm=TRUE), VarVORP= var(VORP, na.rm=TRUE), num_players=n(), MinVORP = min(VORP, na.rm=TRUE), distinctVORP = n_distinct(VORP, na.rm= TRUE))) 
 
 knitr::kable(renamed_dataset %>% group_by(Team) %>% summarize(MeanBPM = mean(BPM, na.rm=TRUE), SdBPM= sd(BPM, na.rm=TRUE), VarBPM= var(BPM, na.rm=TRUE), num_players=n(), MinBPM = min(BPM, na.rm=TRUE), distinctBPM = n_distinct(BPM, na.rm= TRUE))) 
@@ -154,17 +165,31 @@ There are 23 missing/NA values for the Team variable, no missing/NA values for t
 ```{R}
 # your plot 1
 
+library(ggplot2)
 
+ggplot(renamed_dataset, aes(x = PER, y = VORP, 
+    color = Pos)) + geom_point() + geom_smooth(method = "lm")
+```
 
+Your discussion of plot 1
 
 ```{R}
 # your plot 2
+
+ggplot(renamed_dataset, aes(x = Pos, y = PER))+
+geom_bar(stat="summary",fun=mean)+
+geom_errorbar(stat="summary", fun.data=mean_se) + scale_y_continuous(breaks=seq(0,25,2.5))
+
+
+
 ```
 
 Your discussion of plot 2
 
 ```{R}
 # your plot 3
+ggplot(renamed_dataset, aes(x=VORP, fill=Pos)) + geom_density(alpha=.75) + scale_x_continuous()
+
 ```
 
 Your discussion of plot 3
@@ -172,7 +197,3 @@ Your discussion of plot 3
 #### Concluding Remarks
 
 If any!
-
-
-
-
