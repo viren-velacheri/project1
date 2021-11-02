@@ -24,31 +24,29 @@ tidy=TRUE, tidy.opts=list(width.cutoff=60), R.options=list(max.print=100))
 #### Introduction 
 Paragraph or two introducing your datasets and variables, why they are interesting to you, etc.
 
-I am a big sports lover and one of my favorite sports is basketball. I played competitively back in middle school and was a part of the school team and still play it today as a side hobby. In basketball, there are various metrics/stats used to evaluate players and teams.
+I am a big sports lover and one of my favorite sports is basketball. I played competitively through middle school and was a part of the school team and still play it today as a side hobby. In basketball, there are various metrics/stats used to evaluate players and teams.
 
-The 1st dataset contains common stats related to all the eligible players such as shooting percentages, rebounds, minutes played per game, etc. It also contains a couple of advanced metrics such as true shooting percentage which takes into account some of the basic stats like free throw shooting and three point percentage as an attempt to more accurately portray a player in that regard.
-
-The 2nd dataset contains some common variables such as the players and number of games played, but instead of some of the basic statistics that make up the majority of the 1st set, this dataset contains more advanced metrics such as win shares, box plus/minus, etc. With all these different metrics and statistics to play around with, I hope to explore and discover some interesting things.
-
+The 1st dataset and 2nd dataset come from the websites https://www.nbastuffer.com/2020-2021-nba-player-stats/ and https://www.basketball-reference.com/leagues/NBA_2021_advanced.html respectively. The 1st dataset contains common stats related to all the eligible players such as shooting percentages, rebounds, minutes played per game, etc. It also contains a couple of advanced metrics such as true shooting percentage which takes into account some of the basic stats like free throw shooting and three point percentage as an attempt to more accurately portray how good a player is compared to their fellow peers.The 2nd dataset contains some common variables such as the players and number of games played, but instead of some of the basic statistics that make up the majority of the 1st set, this dataset contains more advanced metrics such as win shares, box plus/minus, etc. I found these datasets through the usual google search and the reason these specific datasets stood out to me, as implied above, is because of the different metrics of data they contained. I am a basketball lover and look forward to exploring these datasets! I expect there to be some obvious associations between some of the metrics such as points scored and PER, but my goal is to more look at by position and see potentially if these advanced metrics tend to favor certain positions over others.
 
 ```{R}
 library(tidyverse)
 library(stringi)
 # read your datasets in here, e.g., with read_csv()
 dataset_1 <- read_csv("polished_1st_dataset.csv")
+dataset_2 <- read_csv("polished_2nd_dataset.csv")
+
 # Due to difference in first dataset not using accent marks and other dataset
 # using accent marks for name, I used this function to keep them all the same.
+# That way there are no discrepancies in that regard
 dataset_1$Player <- stri_trans_general(str = dataset_1$Player, id = "Latin-ASCII")
-dataset_2 <- read_csv("polished_2nd_dataset.csv")
 dataset_2$Player <- stri_trans_general(str = dataset_2$Player, id = "Latin-ASCII")
-head(dataset_1)
 ```
 
 #### Tidying: Reshaping
 
 If your datasets are tidy already, demonstrate that you can reshape data with pivot wider/longer here (e.g., untidy and then retidy). Alternatively, it may be easier to wait until the wrangling section so you can reshape your summary statistics. Note here if you are going to do this.
 
-Gonna just wait until the wrangling section where reshaping summary statistics will take place
+My datasets are already tidy enough, but I do the reshaping with pivot_wider() in the wrangling section when I am doing the group_by stuff and calling the summarize functions
 
 ```{R}
 # your tidying code (if applicable; can also wait until wrangling section)
@@ -60,31 +58,48 @@ Gonna just wait until the wrangling section where reshaping summary statistics w
 
 ```{R}
 # your joining code
+# Merged datasets together
 merged_dataset <- full_join(dataset_1, dataset_2, by="Player")
-head(merged_dataset)
 
-nrow(dataset_1)
-nrow(dataset_2)
+dataset1_rows <- nrow(dataset_1)
+dataset1_rows # 626 rows/observations in first dataset
+dataset2_rows <- nrow(dataset_2)
+dataset2_rows # 705 rows/observations in second dataset
 
+# Number of unique ids/players in respective datasets
+dataset1_uniqueIds <- dataset_1 %>% summarize_all(n_distinct) %>% select(Player)
+dataset1_uniqueIds
+dataset2_uniqueIds <- dataset_2 %>% summarize_all(n_distinct) %>% select(Player)
+dataset2_uniqueIds
 
-dataset_1 %>% summarize_all(n_distinct) %>% select(Player)
-dataset_2 %>% summarize_all(n_distinct) %>% select(Player)
-
+# Number of players in first dataset but not other and vice versa
+# It is 17 each
 setdiff(dataset_1$Player, dataset_2$Player)
 setdiff(dataset_2$Player, dataset_1$Player)
 
-nrow(merged_dataset)
-cols_removed_dataset <- merged_dataset %>% select(-'USG%.x') %>% select(-'Games Played.x') %>% select(-'TO%.x') %>% select(-'TS%.x') %>% select(-'TRB%.x') %>% select(-'AST%.x')
-glimpse(cols_removed_dataset)
+# Number of rows in merged dataset is 988
+merged_dataset_nrow <- nrow(merged_dataset)
+merged_dataset_nrow
 
-renamed_dataset <- cols_removed_dataset %>% rename('TS'='TS%.y') %>% rename('TRB'='TRB%.y') %>% rename('AST'='AST%.y') %>% rename('TO'='TO%.y') %>% rename('USG'='USG%.y') %>% rename('Games_Played'='Games Played.y')
-glimpse(renamed_dataset)
-nrow(dataset_1) + nrow(dataset_2) - nrow(renamed_dataset)
+# These are some of the variables the datasets had in common that I decided to remove
+cols_removed_dataset <- merged_dataset %>% select(-'USG%.x') %>% select(-'Games Played.x') %>% select(-'TO%.x') %>% select(-'TS%.x') %>% select(-'TRB%.x') %>% select(-'AST%.x')
+
+# After columns removed, renamed some of the existing columns to better names
+renamed_dataset <- cols_removed_dataset %>% rename('TS'='TS%.y') %>% rename('TRB'='TRB%.y') %>% rename('AST'='AST%.y') %>% rename('TO'='TO%.y') %>% rename('USG'='USG%.y') %>% rename('Games_Played'='Games Played.y') %>% rename('EFG'='eFG%')
+
+# Number of rows dropped when join happened is 343.
+num_rows_dropped <- nrow(dataset_1) + nrow(dataset_2) - nrow(renamed_dataset)
+# I then decided to remove any rows that still had NAs so this dropped an 
+# additional 94 rows
 renamed_dataset <- renamed_dataset %>% na.omit
+renamed_dataset_nrow <- nrow(renamed_dataset)
+renamed_dataset_nrow
 # your joining code
 ```
 
 Discussions of joining here. Feel encouraged to break up into more than once code chunk and discuss each in turn.
+
+
 I did a full join by the common variable in both datasets, Player, as all these other surrounding metrics and statistics in the datasets related to the individual players and I wanted to retain all of the original data in both sets and not lose/drop anything as the more data the better. 
 
 In the first dataset, there are 626 total observations/rows, while in the second one there are 705 observations/rows. They each have 540 unique IDs.
@@ -106,9 +121,9 @@ In the second dataset, these 17 unique Ids/Players do not exist in the first dat
 It appears that this is due to specifications in the names of the players. For example, Robert Williams is mentioned in both datasets, but in the first one it was more specific as it says "Robert Williams III" instead of just "Robert Williams". This can be manually edited as it appears that this is the case for only these 17 or so names.
 
 
-In the merged dataset, there are 988 rows and 343 rows/observations were dropped. Potential problems could be that due to this, there is less data to analyze and results might be less comprehensive. In this case though, I don't believe this should be much of a problem as there are still 988 rows/observations worth of data to look at which should be plenty.
+In the merged dataset, there are 988 rows and 343 rows/observations were dropped. I decided to also drop any rows that had any NA values, so the merged dataset was reduced to 894 rows and/or 94 additional rows were dropped. Potential problems could be that due to this, there is less data to analyze and results might be less comprehensive. In this case though, I don't believe this should be much of a problem as there are still 894 rows/observations worth of data to look at which should be plenty.
 
-I decided to also drop any rows that had any NA values, so the merged dataset was reduced to 894 rows and/or 94 additional rows were dropped. 
+ 
 
 
 ####  Wrangling
@@ -118,26 +133,55 @@ I decided to also drop any rows that had any NA values, so the merged dataset wa
 
 # summary statistics for numeric variables (mean, sd, var, n, quantile, min, max, n_distinct, cor, etc)
 
-knitr::kable(renamed_dataset %>% group_by(Team, Pos) %>% summarize(MeanVORP = mean(VORP, na.rm=TRUE), SdVORP= sd(VORP, na.rm=TRUE), VarVORP= var(VORP, na.rm=TRUE), num_players=n(), MinVORP = min(VORP, na.rm=TRUE), distinctVORP = n_distinct(VORP, na.rm= TRUE)) %>% na.omit %>% arrange(desc(MeanVORP))) 
+# Overall statistics for some of the numeric variables of interest
+knitr::kable(renamed_dataset %>% summarize(Mean = mean(VORP, na.rm=TRUE), Standard_Deviation= sd(VORP, na.rm=TRUE), Variance= var(VORP, na.rm=TRUE), '25%_Quantile' = quantile(VORP, 0.25,  na.rm=TRUE),'50%_Quantile' = quantile(VORP, 0.5,  na.rm=TRUE), '75%_Quantile' = quantile(VORP, 0.75,  na.rm=TRUE), Minimum = min(VORP, na.rm=TRUE), Maximum = max(VORP, na.rm=TRUE), Num_Distinct = n_distinct(VORP, na.rm= TRUE)) %>% na.omit, caption="Value Over Replacement Player Stats")
 
-knitr::kable(renamed_dataset %>% group_by(Team) %>% summarize(MeanVORP = mean(VORP, na.rm=TRUE), SdVORP= sd(VORP, na.rm=TRUE), VarVORP= var(VORP, na.rm=TRUE), num_players=n(), MinVORP = min(VORP, na.rm=TRUE), distinctVORP = n_distinct(VORP, na.rm= TRUE)) %>% na.omit) 
+knitr::kable(renamed_dataset %>% summarize(Mean = mean(VI, na.rm=TRUE), Standard_Deviation= sd(VI, na.rm=TRUE), Variance= var(VI, na.rm=TRUE), '25%_Quantile' = quantile(VI, 0.25,  na.rm=TRUE),'50%_Quantile' = quantile(VI, 0.5,  na.rm=TRUE), '75%_Quantile' = quantile(VI, 0.75,  na.rm=TRUE), Minimum = min(VI, na.rm=TRUE), Maximum = max(VI, na.rm=TRUE), Num_Distinct = n_distinct(VI, na.rm= TRUE)) %>% na.omit, caption="Versatility Index Stats")
 
-knitr::kable(renamed_dataset %>% group_by(Team) %>% summarize(MeanVORP = mean(VORP, na.rm=TRUE), SdVORP= sd(VORP, na.rm=TRUE), VarVORP= var(VORP, na.rm=TRUE), num_players=n(), MinVORP = min(VORP, na.rm=TRUE), distinctVORP = n_distinct(VORP, na.rm= TRUE)) %>% na.omit) 
+knitr::kable(renamed_dataset %>% summarize(Mean = mean(PER, na.rm=TRUE), Standard_Deviation= sd(PER, na.rm=TRUE), Variance= var(PER, na.rm=TRUE), '25%_Quantile' = quantile(PER, 0.25,  na.rm=TRUE),'50%_Quantile' = quantile(PER, 0.5,  na.rm=TRUE), '75%_Quantile' = quantile(PER, 0.75,  na.rm=TRUE), Minimum = min(PER, na.rm=TRUE), Maximum = max(PER, na.rm=TRUE), Num_Distinct = n_distinct(PER, na.rm= TRUE)) %>% na.omit, caption="Player Efficiency Rating Stats")
 
-knitr::kable(renamed_dataset %>% group_by(Team) %>% summarize(MeanVORP = mean(VORP, na.rm=TRUE), SdVORP= sd(VORP, na.rm=TRUE), VarVORP= var(VORP, na.rm=TRUE), num_players=n(), MinVORP = min(VORP, na.rm=TRUE), distinctVORP = n_distinct(VORP, na.rm= TRUE))) 
+knitr::kable(renamed_dataset %>% summarize(Mean = mean(TS, na.rm=TRUE), Standard_Deviation= sd(TS, na.rm=TRUE), Variance= var(TS, na.rm=TRUE), '25%_Quantile' = quantile(TS, 0.25,  na.rm=TRUE),'50%_Quantile' = quantile(TS, 0.5,  na.rm=TRUE), '75%_Quantile' = quantile(TS, 0.75,  na.rm=TRUE), Minimum = min(TS, na.rm=TRUE), Maximum = max(TS, na.rm=TRUE), Num_Distinct = n_distinct(TS, na.rm= TRUE)) %>% na.omit, caption="True Shooting Percentage Stats")
 
-knitr::kable(renamed_dataset %>% group_by(Team) %>% summarize(MeanBPM = mean(BPM, na.rm=TRUE), SdBPM= sd(BPM, na.rm=TRUE), VarBPM= var(BPM, na.rm=TRUE), num_players=n(), MinBPM = min(BPM, na.rm=TRUE), distinctBPM = n_distinct(BPM, na.rm= TRUE))) 
+knitr::kable(renamed_dataset %>% summarize(Mean = mean(EFG, na.rm=TRUE), Standard_Deviation= sd(EFG, na.rm=TRUE), Variance= var(EFG, na.rm=TRUE), '25%_Quantile' = quantile(EFG, 0.25,  na.rm=TRUE),'50%_Quantile' = quantile(EFG, 0.5,  na.rm=TRUE), '75%_Quantile' = quantile(EFG, 0.75,  na.rm=TRUE), Minimum = min(EFG, na.rm=TRUE), Maximum = max(EFG, na.rm=TRUE), Num_Distinct = n_distinct(EFG, na.rm= TRUE)) %>% na.omit, caption="Effective Field Goal Percentage Stats")
 
-knitr::kable(renamed_dataset %>% group_by(Team) %>% summarize(MeanWS = mean(WS, na.rm=TRUE), SdWS= sd(WS, na.rm=TRUE), VarWS= var(WS, na.rm=TRUE), num_players=n(), MinWS = min(WS, na.rm=TRUE), distinctWS = n_distinct(WS, na.rm= TRUE))) 
+knitr::kable(renamed_dataset %>% summarize(Mean = mean(BPM, na.rm=TRUE), Standard_Deviation= sd(BPM, na.rm=TRUE), Variance= var(BPM, na.rm=TRUE), '25%_Quantile' = quantile(BPM, 0.25,  na.rm=TRUE),'50%_Quantile' = quantile(BPM, 0.5,  na.rm=TRUE), '75%_Quantile' = quantile(BPM, 0.75,  na.rm=TRUE), Minimum = min(BPM, na.rm=TRUE), Maximum = max(BPM, na.rm=TRUE), Num_Distinct = n_distinct(BPM, na.rm= TRUE)) %>% na.omit, caption="BPM Summary Stats")
 
-knitr::kable(renamed_dataset %>% group_by(Team) %>% summarize(MeanPER = mean(PER, na.rm=TRUE), SdPER= sd(PER, na.rm=TRUE), VarPER= var(PER, na.rm=TRUE), num_players=n(), MinPER = min(PER, na.rm=TRUE), distinctPER = n_distinct(PER, na.rm= TRUE))) 
+knitr::kable(renamed_dataset %>% summarize(Mean = mean(WS, na.rm=TRUE), Standard_Deviation= sd(WS, na.rm=TRUE), Variance= var(WS, na.rm=TRUE), '25%_Quantile' = quantile(WS, 0.25,  na.rm=TRUE),'50%_Quantile' = quantile(WS, 0.5,  na.rm=TRUE), '75%_Quantile' = quantile(WS, 0.75,  na.rm=TRUE), Minimum = min(WS, na.rm=TRUE), Maximum = max(WS, na.rm=TRUE), Num_Distinct = n_distinct(WS, na.rm= TRUE)) %>% na.omit, caption="Win Share Summary Stats")
 
-knitr::kable(renamed_dataset %>% group_by(Team) %>% summarize(MeanTS = mean(TS, na.rm=TRUE), SdTS= sd(TS, na.rm=TRUE), VarTS= var(TS, na.rm=TRUE), num_players=n(), MinTS = min(TS, na.rm=TRUE), distinctTS = n_distinct(TS, na.rm= TRUE)))
+# Statistics calculated after grouping and other functions
+
+knitr::kable(renamed_dataset %>% group_by(Pos) %>% pivot_wider() %>% summarize(Mean = mean(VORP, na.rm=TRUE), Standard_Deviation= sd(VORP, na.rm=TRUE), Variance= var(VORP, na.rm=TRUE), '25%_Quantile' = quantile(VORP, 0.25,  na.rm=TRUE),'50%_Quantile' = quantile(VORP, 0.5,  na.rm=TRUE), '75%_Quantile' = quantile(VORP, 0.75,  na.rm=TRUE), Minimum = min(VORP, na.rm=TRUE), Maximum = max(VORP, na.rm=TRUE), Num_Distinct = n_distinct(VORP, na.rm= TRUE)) %>% na.omit %>% filter(Mean >= 0) %>% arrange(desc(Mean)), caption="Top VORP Positions")
+
+knitr::kable(renamed_dataset %>% group_by(Team, Pos) %>% pivot_wider() %>% summarize(Mean = mean(VI, na.rm=TRUE), Standard_Deviation= sd(VI, na.rm=TRUE), Variance= var(VI, na.rm=TRUE), '25%_Quantile' = quantile(VI, 0.25,  na.rm=TRUE),'50%_Quantile' = quantile(VI, 0.5,  na.rm=TRUE), '75%_Quantile' = quantile(VI, 0.75,  na.rm=TRUE), Minimum = min(VI, na.rm=TRUE), Maximum = max(VI, na.rm=TRUE), Num_Distinct = n_distinct(VI, na.rm= TRUE)) %>% na.omit %>% arrange(desc(Mean)) %>% slice(1:2), caption="Top 2 Versatile Positions by Team")
+
+knitr::kable(renamed_dataset %>% group_by(Pos) %>% pivot_wider() %>% summarize(Mean = mean(PER, na.rm=TRUE), Standard_Deviation= sd(PER, na.rm=TRUE), Variance= var(PER, na.rm=TRUE), '25%_Quantile' = quantile(PER, 0.25,  na.rm=TRUE),'50%_Quantile' = quantile(PER, 0.5,  na.rm=TRUE), '75%_Quantile' = quantile(PER, 0.75,  na.rm=TRUE), Minimum = min(PER, na.rm=TRUE), Maximum = max(PER, na.rm=TRUE), Num_Distinct = n_distinct(PER, na.rm= TRUE)) %>% na.omit %>% arrange(desc(Mean)) %>% slice(1:5) %>% select(Pos), caption="Top 5 PER Position Rankings")
+
+knitr::kable(renamed_dataset %>% group_by(Pos) %>% pivot_wider() %>% summarize(Mean = mean(TS, na.rm=TRUE), Standard_Deviation= sd(TS, na.rm=TRUE), Variance= var(TS, na.rm=TRUE), '25%_Quantile' = quantile(TS, 0.25,  na.rm=TRUE),'50%_Quantile' = quantile(TS, 0.5,  na.rm=TRUE), '75%_Quantile' = quantile(TS, 0.75,  na.rm=TRUE), Minimum = min(TS, na.rm=TRUE), Maximum = max(TS, na.rm=TRUE), Num_Distinct = n_distinct(TS, na.rm= TRUE)) %>% na.omit %>% arrange(desc(Mean)) %>% slice(1:5) %>% select(Pos), caption="Top 5 True Shooting Position Rankings")
+
+knitr::kable(renamed_dataset %>% group_by(Pos) %>% pivot_wider() %>% summarize(Mean = mean(EFG, na.rm=TRUE), Standard_Deviation= sd(EFG, na.rm=TRUE), Variance= var(EFG, na.rm=TRUE), '25%_Quantile' = quantile(EFG, 0.25,  na.rm=TRUE),'50%_Quantile' = quantile(EFG, 0.5,  na.rm=TRUE), '75%_Quantile' = quantile(EFG, 0.75,  na.rm=TRUE), Minimum = min(EFG, na.rm=TRUE), Maximum = max(EFG, na.rm=TRUE), Num_Distinct = n_distinct(EFG, na.rm= TRUE)) %>% na.omit %>% arrange(desc(Mean)) %>% slice(1:5) %>% select(Pos), caption="Top 5 Effective Field Goal Percentage Position Rankings")
+
+knitr::kable(renamed_dataset %>% group_by(Pos) %>% pivot_wider() %>% summarize(Mean = mean(BPM, na.rm=TRUE), Standard_Deviation= sd(BPM, na.rm=TRUE), Variance= var(BPM, na.rm=TRUE), '25%_Quantile' = quantile(BPM, 0.25,  na.rm=TRUE),'50%_Quantile' = quantile(BPM, 0.5,  na.rm=TRUE), '75%_Quantile' = quantile(BPM, 0.75,  na.rm=TRUE), Minimum = min(BPM, na.rm=TRUE), Maximum = max(BPM, na.rm=TRUE), Num_Distinct = n_distinct(BPM, na.rm= TRUE)) %>% na.omit %>% arrange(desc(Mean)) %>% slice(1:5) %>% select(Pos), caption="Top 5 BPM Position Rankings")
+
+knitr::kable(renamed_dataset %>% group_by(Pos) %>% pivot_wider() %>% summarize(Mean = mean(WS, na.rm=TRUE), Standard_Deviation= sd(WS, na.rm=TRUE), Variance= var(WS, na.rm=TRUE), '25%_Quantile' = quantile(WS, 0.25,  na.rm=TRUE),'50%_Quantile' = quantile(WS, 0.5,  na.rm=TRUE), '75%_Quantile' = quantile(WS, 0.75,  na.rm=TRUE), Minimum = min(WS, na.rm=TRUE), Maximum = max(WS, na.rm=TRUE), Num_Distinct = n_distinct(WS, na.rm= TRUE)) %>% na.omit %>% arrange(desc(Mean)) %>% slice(1:5) %>% select(Pos), caption="Top 5 Win Share Position Rankings")
+
+BPM_WS_Metric_Added <- renamed_dataset %>% mutate(BPM_WS_Metric_Avg = (BPM + WS)/2)
+
+knitr::kable(BPM_WS_Metric_Added %>% group_by(Pos) %>% summarize(Mean = mean(BPM_WS_Metric_Avg, na.rm=TRUE), Standard_Deviation= sd(BPM_WS_Metric_Avg, na.rm=TRUE), Variance= var(BPM_WS_Metric_Avg, na.rm=TRUE), '25%_Quantile' = quantile(BPM_WS_Metric_Avg, 0.25,  na.rm=TRUE),'50%_Quantile' = quantile(BPM_WS_Metric_Avg, 0.5,  na.rm=TRUE), '75%_Quantile' = quantile(BPM_WS_Metric_Avg, 0.75,  na.rm=TRUE), Minimum = min(BPM_WS_Metric_Avg, na.rm=TRUE), Maximum = max(BPM_WS_Metric_Avg, na.rm=TRUE), Num_Distinct = n_distinct(BPM_WS_Metric_Avg, na.rm= TRUE)) %>% na.omit %>% arrange(desc(Mean)) %>% slice(1:5) %>% select(Pos), caption="Top 5 BPM WS Average Position Rankings")
+
+BPM_WS_VORP_calculation <- function(BPM, WS, VORP) {
+  return(mean((BPM + WS + VORP * 2)/ 3))
+}
+
+knitr::kable(BPM_WS_Metric_Added %>% group_by(Pos) %>% summarize(BPM_WS_VORP = BPM_WS_VORP_calculation(BPM, WS, VORP)) %>% na.omit %>% arrange(desc(BPM_WS_VORP)) %>% slice(1:5), caption="Top 5 BPM WS Average Position Rankings")
+
+knitr::kable(renamed_dataset %>% group_by(Player) %>% filter(str_detect(Pos, ".*G")) %>% summarize(Mean = mean(WS, na.rm=TRUE), Standard_Deviation= sd(WS, na.rm=TRUE), Variance= var(WS, na.rm=TRUE), '25%_Quantile' = quantile(WS, 0.25,  na.rm=TRUE),'50%_Quantile' = quantile(WS, 0.5,  na.rm=TRUE), '75%_Quantile' = quantile(WS, 0.75,  na.rm=TRUE), Minimum = min(WS, na.rm=TRUE), Maximum = max(WS, na.rm=TRUE), Num_Distinct = n_distinct(WS, na.rm= TRUE)) %>% na.omit %>% arrange(desc(Mean)) %>% slice(1:5), caption="Top 5 Win Share Guards")
+
+
+
+
 
 # Categorical Variables
 knitr::kable(renamed_dataset %>% group_by(Team) %>% summarize(num_players = n()))
-
-knitr::kable(renamed_dataset %>% group_by(Player) %>% summarize(num_times = n()))
 
 knitr::kable(renamed_dataset %>% group_by(Pos) %>% summarize(num_times = n()))
 
@@ -147,17 +191,14 @@ na_count <- function(x) {
 }
 
 knitr::kable(renamed_dataset %>% summarize_all(na_count))
-
-
-# your wrangling code
-glimpse(merged_dataset)
-
-# your wrangling code
 ```
+
+For tidying, my datasets and merged dataset were already tidy enough, so I just used the pivot_wider() method in the different summarizations that involved the group_by method and the other respective dplr functions. Since my data was already rearranged properly there wasn't really much change, but that is what proved to my that my dataset was already tidied enough in the wide manner. 
 
 Your discussion of wrangling section here. Feel encouraged to break up into more than once code chunk and discuss each in turn.
 
-There are 23 missing/NA values for the Team variable, no missing/NA values for the Player variable, and 20 missing/NA values for the Pos variable.
+
+I decided to compute the summary statistics for the numeric variables that involved the advanced metrics such as PER, VORP, VI, EFG, TS, BPM, and WS. From there, did a similar thing with all these variables except I grouped by Position except for Versatility Index (VI) where I grouped by both Position and Player. I then created a new metric that took both BPM and WS, averaged them together, and then use that in getting summary statistics. I also made up this function to use in summary function that takes in BPM, WS, and VORP and uses this formula I came up with: (BPM + WS + VORP * 2)/ 3). Lastly, at the very end, I did summarization of win shares based on grouping by players, but filtered such that only the guards were taken into consideration. As far as findings go, there were some interesting/surprising things that stood out. It turns out that Power forwards or centers have a better true shooting percentage on average than the guards. This surprised me as I thought that due to the 3 point shot, the guards would have the overall edge in True shooting percentage, but that was not the case. As far as the impact metrics such as PER and BPM that attempt to capture a player's overall impact on the game, it appears that these metrics favored the guards, specifically, the PG-SG position. These metrics in general tended to favor the positions that were hybrids so to speak like PG-SG, PF-C, etc. I had not really thought of it that way before, but it makes sense as the versatility in the player's game must play factor. Lastly, in terms of win shares amongst guards, it was not at all surprising seeing James Harden at the top, but the guards that followed such as Delon Wright and Norman Powell was very surprising to say the least. I thought Steph would for sure be in the top 5 in terms of win shares considering how good a player he is.
 
 
 #### Visualizing
@@ -167,18 +208,23 @@ There are 23 missing/NA values for the Team variable, no missing/NA values for t
 
 library(ggplot2)
 
-ggplot(renamed_dataset, aes(x = PER, y = VORP, 
-    color = Pos)) + geom_point() + geom_smooth(method = "lm")
+ggplot(renamed_dataset, aes(x = PER, y = BPM, 
+    color = Pos)) + geom_point() + geom_smooth(method = "lm") + ggtitle("PER vs BPM") + 
+    theme(plot.title = element_text(hjust = 0.5)) + 
+    xlab("PER") + ylab("BPM") + scale_x_continuous(breaks=seq(-40,35,10))
 ```
 
 Your discussion of plot 1
+
+The plot appears to show that regardless of position, there seems to be a positive relationship/correlation between PER and BPM where the greater the PER, the greater the BPM and vice versa. Beyond that though it seems to show that PER and BPM vary differently for the different positional groupings. Some of the positional groupings, such as centers, seem to have greater PER and BPM values overall compared to the rest of the positional groupings. There are a couple of outliers here and there, but not too much. 
 
 ```{R}
 # your plot 2
 
 ggplot(renamed_dataset, aes(x = Pos, y = PER))+
 geom_bar(stat="summary",fun=mean)+
-geom_errorbar(stat="summary", fun.data=mean_se) + scale_y_continuous(breaks=seq(0,25,2.5))
+geom_errorbar(stat="summary", fun.data=mean_se) + scale_y_continuous(breaks=seq(0,25,2.5)) + ggtitle("Mean PER per Position") + theme(plot.title = element_text(hjust = 0.5)) + 
+    xlab("Position") + ylab("PER")
 
 
 
@@ -186,14 +232,24 @@ geom_errorbar(stat="summary", fun.data=mean_se) + scale_y_continuous(breaks=seq(
 
 Your discussion of plot 2
 
+
+The plot shows the mean PER for the different positions along with the mean standard error. This plot appears to show that there seems to be a wide disparity/difference between some of the positions in terms of average PER. For instance, PG-SG has the highest at close to 25, while PF-SF has the lowest around 7.5. This plot shows that there are some considerable differences in PER between the different positional groups in basketball.
+
 ```{R}
 # your plot 3
-ggplot(renamed_dataset, aes(x=VORP, fill=Pos)) + geom_density(alpha=.75) + scale_x_continuous()
+library(ggridges)
+
+ggplot(renamed_dataset, aes(x=BPM, color=Pos)) + geom_density(alpha=0.75) + theme(legend.position=c(.9,.8)) + geom_rug() +
+scale_x_continuous() + ggtitle("BPM Density Plot") + theme(plot.title = element_text(hjust = 0.5)) + 
+    xlab("BPM") + ylab("Density")
 
 ```
 
 Your discussion of plot 3
 
+
+This plot depicts the density distribution of BPM in relation to the positional groupings. Based on this plot, it seems that concrete differences exist between the different positional groups in basketball. For instance, the C-PF group appears to have BPM that is between 0 and 3, but the PF-SF group appears to be between mostly -2 and -5. This appears to be the case for most of these positional groupings and seems to be indicative that BPM appears to vary by positional group. 
+
 #### Concluding Remarks
 
-If any!
+Overall, it seems to me, based on the plots as well as my findings from the wrangling section that there are significant differences that exist in a lot of the advanced metrics such as BPM, PER, VORP, etc between each of the different positional groups. This was surprising as I thought prior that these advanced metrics would evaluate evenly all the players regardless of position. However, my results appear to indicate otherwise.
